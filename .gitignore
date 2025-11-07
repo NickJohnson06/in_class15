@@ -18,9 +18,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code (uncomment if you prefer to exclude your workspace settings)
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -39,7 +37,85 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio build splits
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets & credentials (generic)
+.env
+.env.*
+*.secret
+*.secrets
+secrets/
+**/secrets/**
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.asc
+*keystore*
+**/key.properties
+
+# Fastlane (keep config files if you use CI; ignore generated artifacts)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Firebase / Google (files that commonly contain secrets)
+# NOTE: firebase.json and .firebaserc are generally safe to commit; we keep them tracked.
+# The following often embed API keys or identifiers and should NOT be versioned.
+**/lib/firebase_options.dart
+**/android/app/google-services.json
+**/android/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+**/macos/Runner/GoogleService-Info.plist
+# Web service worker may include keys if inlined; ignore if you generate it locally
+**/web/firebase-messaging-sw.js
+# Firebase local state/logs
+.firebase/
+**/firebase-debug.log
+
+# Android-specific
+**/android/local.properties
+**/android/.gradle/
+**/android/captures/
+**/android/.idea/
+**/android/app/*.keystore
+**/android/app/*.jks
+**/android/app/google-services.json
+
+# iOS / macOS-specific
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/.generated/
+# Keep Podfile & Podfile.lock tracked for reproducible builds
+
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+**/macos/Runner/GeneratedPluginRegistrant.*
+**/macos/.generated/
+
+# Windows / Linux (Flutter desktop)
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# Web
+# (Keep /web assets tracked; only ignore generated service workers if they embed secrets)
+**/web/.firebase/
+
+# Patch/merge cruft
+*.orig
+*.rej
