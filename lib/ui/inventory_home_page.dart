@@ -93,6 +93,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                   ),
+                  style: TextStyle(color: Colors.black),
                   onChanged: (value) {
                     setState(() {
                       _searchQuery = value;
@@ -215,7 +216,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                               child: ListTile(
                                 title: Text(item.name),
                                 subtitle: Text(
-                                  'Qty: ${item.quantity} • \$${item.price.toStringAsFixed(2)} • ${item.category}',
+                                  'Qty: ${item.quantity} • Price: \$${item.price.toStringAsFixed(2)} • ${item.category}',
                                 ),
                                 onTap: () {
                                   Navigator.push(
