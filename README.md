@@ -1,17 +1,26 @@
-# firebase_setup
+# Inventory Management App
 
-A new Flutter project.
+A Flutter + Firebase Firestore app that allows users to manage inventory items with full **Create, Read, Update, and Delete (CRUD)** functionality.  
+All data is stored and updated in real time using Firestore.
 
-## Getting Started
+## Enhanced Features Implemented
 
-This project is a starting point for a Flutter application.
+1. **Advanced Search & Filtering**  
+   - Added a search bar that filters items by name as you type.  
+   - Added filter chips for category selection and a “Low Stock” option (items with quantity < 5).  
 
-A few resources to get you started if this is your first Flutter project:
+2. **Data Insights Dashboard**  
+   - Added a dashboard screen showing:  
+     - Total number of unique items  
+     - Total inventory value (quantity × price)  
+     - A list of out-of-stock items  
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## How to Run the App
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. **Clone or download** this project to your local machine.  
+2. Open the project in **Android Studio** or **VS Code**.  
+3. Make sure you have Flutter and Firebase CLI installed and configured.  
+4. Run the following commands in the terminal:
+
+   flutter pub get
+   flutter run
