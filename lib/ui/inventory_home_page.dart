@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/item_model.dart';
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 import 'add_edit_item_screen.dart';
 import 'inventory_dashboard_page.dart';
+import 'login_screen.dart';
 
 class InventoryHomePage extends StatefulWidget {
   const InventoryHomePage({super.key});
@@ -13,8 +15,8 @@ class InventoryHomePage extends StatefulWidget {
 
 class _InventoryHomePageState extends State<InventoryHomePage> {
   final FirestoreService _service = FirestoreService();
-
   final TextEditingController _searchController = TextEditingController();
+
   String _searchQuery = '';
   String? _selectedCategory;
   bool _lowStockOnly = false;
@@ -23,6 +25,19 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _signOut() async {
+    await AuthService().signOut();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Signed out successfully')),
+    );
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -42,11 +57,15 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
+          ),
         ],
       ),
       body: Column(
         children: [
-          // Search bar outside the StreamBuilder so it keeps focus
+          // Search bar (kept outside StreamBuilder so it doesn't lose focus)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: TextField(
@@ -64,7 +83,6 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
             ),
           ),
 
-          // The rest depends on Firestore data
           Expanded(
             child: StreamBuilder<List<Item>>(
               stream: _service.getItemsStream(),
@@ -117,7 +135,9 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
                           ChoiceChip(
@@ -147,8 +167,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                               padding: const EdgeInsets.only(right: 8),
                               child: ChoiceChip(
                                 label: Text(cat),
-                                selected: _selectedCategory == cat &&
-                                    !_lowStockOnly,
+                                selected:
+                                    _selectedCategory == cat && !_lowStockOnly,
                                 onSelected: (selected) {
                                   setState(() {
                                     _selectedCategory =
@@ -177,7 +197,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                 final item = filteredItems[index];
 
                                 return Dismissible(
-                                  key: ValueKey(item.id ?? 'item_$index'),
+                                  key:
+                                      ValueKey(item.id ?? 'item_$index'),
                                   direction: DismissDirection.endToStart,
                                   background: Container(
                                     alignment: Alignment.centerRight,
@@ -229,7 +250,9 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                   },
                                   child: Card(
                                     margin: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     child: ListTile(
                                       title: Text(item.name),
                                       subtitle: Text(
