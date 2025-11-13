@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/item_model.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
@@ -16,10 +17,17 @@ class InventoryHomePage extends StatefulWidget {
 class _InventoryHomePageState extends State<InventoryHomePage> {
   final FirestoreService _service = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
   String _searchQuery = '';
   String? _selectedCategory;
   bool _lowStockOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupFirebaseMessaging();
+  }
 
   @override
   void dispose() {
@@ -27,12 +35,60 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     super.dispose();
   }
 
+  // Firebase Messaging Setup
+  Future<void> _setupFirebaseMessaging() async {
+    // Request permissions (especially for iOS)
+    await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Subscribe to a topic
+    await _messaging.subscribeToTopic('messaging');
+
+    // Get device token
+    final token = await _messaging.getToken();
+    print('FCM Token: $token');
+
+    // Foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Message received in foreground');
+      print(message.notification?.title);
+      print(message.notification?.body);
+
+      if (message.notification?.body != null) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(message.notification?.title ?? 'Notification'),
+            content: Text(message.notification!.body!),
+            actions: [
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              )
+            ],
+          ),
+        );
+      }
+    });
+
+    // When user taps a notification that opened the app
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Notification clicked!');
+    });
+  }
+
+  // Sign Out
   void _signOut() async {
     await AuthService().signOut();
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Signed out successfully')),
     );
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -65,7 +121,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
       ),
       body: Column(
         children: [
-          // Search bar (kept outside StreamBuilder so it doesn't lose focus)
+          // Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: TextField(
@@ -76,36 +132,33 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
+                setState(() => _searchQuery = value);
               },
             ),
           ),
 
+          // Realtime inventory stream
           Expanded(
             child: StreamBuilder<List<Item>>(
               stream: _service.getItemsStream(),
               builder: (context, snapshot) {
-                // Loading
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Error
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
                 }
 
                 final allItems = snapshot.data ?? [];
-
                 if (allItems.isEmpty) {
                   return const Center(
                     child: Text('No items yet. Tap + to add one.'),
                   );
                 }
 
-                // Build unique category list
                 final categories = allItems
                     .map((item) => item.category)
                     .where((c) => c.isNotEmpty)
@@ -113,7 +166,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                     .toList()
                   ..sort();
 
-                // Apply filters
+                // Apply search + filters
                 final filteredItems = allItems.where((item) {
                   final matchesSearch = item.name
                       .toLowerCase()
@@ -131,13 +184,11 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
 
                 return Column(
                   children: [
-                    // Filter chips
+                    // Filter Chips
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                          horizontal: 12, vertical: 4),
                       child: Row(
                         children: [
                           ChoiceChip(
@@ -156,9 +207,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                             label: const Text('Low Stock (<5)'),
                             selected: _lowStockOnly,
                             onSelected: (selected) {
-                              setState(() {
-                                _lowStockOnly = selected;
-                              });
+                              setState(() => _lowStockOnly = selected);
                             },
                           ),
                           const SizedBox(width: 8),
@@ -167,8 +216,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                               padding: const EdgeInsets.only(right: 8),
                               child: ChoiceChip(
                                 label: Text(cat),
-                                selected:
-                                    _selectedCategory == cat && !_lowStockOnly,
+                                selected: _selectedCategory == cat &&
+                                    !_lowStockOnly,
                                 onSelected: (selected) {
                                   setState(() {
                                     _selectedCategory =
@@ -177,19 +226,18 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                 },
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),
 
                     const Divider(height: 1),
 
-                    // Filtered list
+                    // Filtered List
                     Expanded(
                       child: filteredItems.isEmpty
                           ? const Center(
-                              child: Text(
-                                  'No items match your search/filters.'),
+                              child: Text('No items match your filters.'),
                             )
                           : ListView.builder(
                               itemCount: filteredItems.length,
@@ -202,8 +250,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                   direction: DismissDirection.endToStart,
                                   background: Container(
                                     alignment: Alignment.centerRight,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20),
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 20),
                                     color: Colors.red,
                                     child: const Icon(
                                       Icons.delete,
@@ -211,25 +259,23 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                     ),
                                   ),
                                   confirmDismiss: (_) async {
-                                    return await showDialog<bool>(
+                                    return await showDialog(
                                       context: context,
                                       builder: (_) => AlertDialog(
                                         title: const Text('Delete item?'),
                                         content: Text(
-                                          'This will permanently delete "${item.name}".',
+                                          'Permanently delete "${item.name}"?',
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(
-                                                    context, false),
                                             child: const Text('Cancel'),
-                                          ),
-                                          FilledButton(
                                             onPressed: () =>
-                                                Navigator.pop(
-                                                    context, true),
+                                                Navigator.pop(context, false),
+                                          ),
+                                          TextButton(
                                             child: const Text('Delete'),
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
                                           ),
                                         ],
                                       ),
@@ -237,8 +283,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                   },
                                   onDismissed: (_) async {
                                     if (item.id != null) {
-                                      await _service
-                                          .deleteItem(item.id!);
+                                      await _service.deleteItem(item.id!);
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
@@ -250,9 +295,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                   },
                                   child: Card(
                                     margin: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                        horizontal: 12, vertical: 6),
                                     child: ListTile(
                                       title: Text(item.name),
                                       subtitle: Text(
@@ -263,9 +306,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (_) =>
-                                                AddEditItemScreen(
-                                              item: item,
-                                            ),
+                                                AddEditItemScreen(item: item),
                                           ),
                                         );
                                       },
@@ -277,8 +318,7 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                             MaterialPageRoute(
                                               builder: (_) =>
                                                   AddEditItemScreen(
-                                                item: item,
-                                              ),
+                                                      item: item),
                                             ),
                                           );
                                         },
@@ -296,13 +336,14 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
           ),
         ],
       ),
+
+      // Add Item Button
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const AddEditItemScreen(),
-            ),
+                builder: (_) => const AddEditItemScreen()),
           );
         },
         child: const Icon(Icons.add),
