@@ -51,23 +51,79 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     final token = await _messaging.getToken();
     print('FCM Token: $token');
 
-    // Foreground messages
+    // Foreground messages with type-based styling
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Message received in foreground');
-      print(message.notification?.title);
-      print(message.notification?.body);
+      print('Title: ${message.notification?.title}');
+      print('Body: ${message.notification?.body}');
+      print('Data: ${message.data}');
+
+      final data = message.data;
+      final type = (data['type'] ?? 'regular').toString().toLowerCase();
+      final category = data['category'] ?? '';
+
+      // Default styles (for "regular" / unknown)
+      Color bgColor = Colors.blue.shade50;
+      Color titleColor = Colors.blue.shade900;
+      String prefix = 'Quote';
+      IconData icon = Icons.format_quote;
+
+      if (type == 'important') {
+        bgColor = Colors.red.shade50;
+        titleColor = Colors.red.shade900;
+        prefix = 'Important Quote';
+        icon = Icons.warning_amber_rounded;
+      } else if (type == 'wisdom') {
+        bgColor = Colors.deepPurple.shade50;
+        titleColor = Colors.deepPurple.shade900;
+        prefix = 'Wisdom Quote';
+        icon = Icons.auto_stories_rounded;
+      } else if (type == 'regular') {
+        bgColor = Colors.teal.shade50;
+        titleColor = Colors.teal.shade900;
+        prefix = 'Daily Quote';
+        icon = Icons.lightbulb_outline;
+      }
 
       if (message.notification?.body != null) {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text(message.notification?.title ?? 'Notification'),
-            content: Text(message.notification!.body!),
+            backgroundColor: bgColor,
+            icon: Icon(icon, color: titleColor),
+            title: Text(
+              message.notification?.title ?? prefix,
+              style: TextStyle(
+                color: titleColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.notification!.body!,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                if (category.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Category: $category',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: titleColor,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             actions: [
               TextButton(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              )
+                child: const Text('Close'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ],
           ),
         );
@@ -77,6 +133,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
     // When user taps a notification that opened the app
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Notification clicked!');
+      print('Type: ${message.data['type']}');
+      print('Category: ${message.data['category']}');
     });
   }
 
@@ -184,11 +242,13 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
 
                 return Column(
                   children: [
-                    // Filter Chips
+                    // 🔘 Filter Chips
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
                           ChoiceChip(
@@ -216,8 +276,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                               padding: const EdgeInsets.only(right: 8),
                               child: ChoiceChip(
                                 label: Text(cat),
-                                selected: _selectedCategory == cat &&
-                                    !_lowStockOnly,
+                                selected:
+                                    _selectedCategory == cat && !_lowStockOnly,
                                 onSelected: (selected) {
                                   setState(() {
                                     _selectedCategory =
@@ -250,8 +310,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                                   direction: DismissDirection.endToStart,
                                   background: Container(
                                     alignment: Alignment.centerRight,
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 20),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
                                     color: Colors.red,
                                     child: const Icon(
                                       Icons.delete,
@@ -343,7 +403,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (_) => const AddEditItemScreen()),
+              builder: (_) => const AddEditItemScreen(),
+            ),
           );
         },
         child: const Icon(Icons.add),
